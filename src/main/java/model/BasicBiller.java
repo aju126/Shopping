@@ -1,6 +1,10 @@
 package model;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
+
 import lombok.Getter;
 import lombok.Setter;
 import service.BillerInterface;
@@ -11,23 +15,16 @@ import service.ProductInterface;
  */
 public final class BasicBiller implements BillerInterface {
 
-    /**
-     * Static Basic Biller instance.
-     */
-    private static BasicBiller biller;
-
-    // TODO : Implement a Decorator Pattern for supporting multiple tax components
     private ArrayList<TaxComponent> taxComponents = new ArrayList<>();
+    private HashMap<String, Double> taxBreakup = new HashMap<>();
 
-    private BasicBiller() {
-
-    }
-
-    public static BasicBiller getBillerInstance() {
-        if (biller == null) {
-            biller = new BasicBiller();
+    private double roundOff(double value, RoundingMode roundOffStrategy) {
+        DecimalFormat df = new DecimalFormat("##.##");
+        if(roundOffStrategy == null) {
+            roundOffStrategy = RoundingMode.HALF_EVEN;
         }
-        return biller;
+        df.setRoundingMode(roundOffStrategy);
+        return Double.parseDouble(df.format(value));
     }
 
     /**
@@ -42,16 +39,20 @@ public final class BasicBiller implements BillerInterface {
         }
         finalCost = basicCost;
         for (TaxComponent tax : this.taxComponents) {
-            finalCost += (tax.taxPercent / 100) * basicCost;
+            double computedTax = roundOff((tax.taxPercent / 100) * basicCost, tax.roundingMode);
+            this.taxBreakup.put(tax.taxName, computedTax);
+            finalCost += computedTax;
         }
-        return finalCost;
+        return roundOff(finalCost, null);
     }
 
     @Override
-    public void setTaxComponent(String taxName, double percent) {
+    public void setTaxComponent(String taxName, double percent, RoundingMode mode) {
         TaxComponent tax = new TaxComponent();
         tax.taxName = taxName;
         tax.taxPercent = percent;
+        tax.roundingMode = mode;
+        taxBreakup.put(taxName, 0.0);
         taxComponents.add(tax);
     }
 
@@ -63,12 +64,21 @@ public final class BasicBiller implements BillerInterface {
         @Getter
         @Setter
         private double taxPercent;
+
+        @Getter
+        @Setter
+        private RoundingMode roundingMode;
     }
 
     @Override
     public void clearTaxComponent() {
         this.taxComponents.clear();
 
+    }
+
+    @Override
+    public HashMap<String, Double> getTaxBreakup() {
+        return this.taxBreakup;
     }
 
 }

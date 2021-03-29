@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import service.BillerInterface;
 import service.CartInterface;
 import service.ProductInterface;
 
@@ -13,9 +14,11 @@ public final class Cart implements CartInterface {
     private static Cart cart;
     private ArrayList<UUID> productKeys;
     private ProductManager manager = ProductManager.getProductMapperInstance();
-
+    private BillerInterface biller;
+    
     private Cart() {
         productKeys = new ArrayList<>();
+        biller = new BasicBiller();
     }
 
     public static Cart getInstance() {
@@ -49,11 +52,11 @@ public final class Cart implements CartInterface {
                 .collect(Collectors.toList());
     }
 
-    private HashMap<UUID, Integer> getProductCounter() {
+    public HashMap<UUID, Integer> getProductCounter() {
         HashMap<UUID, Integer> productCounter = new HashMap<>();
         for (UUID uuid : productKeys) {
             Integer counter = 1;
-            if(productCounter.containsKey(uuid)) {
+            if (productCounter.containsKey(uuid)) {
                 counter = productCounter.get(uuid);
                 counter += 1;
             }
@@ -66,14 +69,26 @@ public final class Cart implements CartInterface {
     public void printCart() {
         HashMap<UUID, Integer> productCounter = getProductCounter();
         for (Map.Entry<UUID, Integer> prodKey : productCounter.entrySet()) {
-            int counter = (Integer)prodKey.getValue();
+            int counter = (Integer) prodKey.getValue();
             StringBuilder prodText = new StringBuilder();
             prodText.append(manager.get(prodKey.getKey()).getName());
-            if(counter > 1) {
+            if (counter > 1) {
                 prodText.append(" X ");
                 prodText.append(counter);
             }
             System.out.println(prodText.toString());
         }
+    }
+
+    @Override
+    public void setBiller(BillerInterface biller) {
+        this.biller = biller;
+    }
+
+    @Override
+    public double checkout() {
+        double finalPrice = biller.generateBill(getAllProducts());
+        clearCart();
+        return finalPrice;
     }
 }

@@ -1,6 +1,8 @@
 package model;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,14 +17,14 @@ public class BasicBillerTest {
 
     @BeforeAll
     private static void setUp() {
-        biller = BasicBiller.getBillerInstance();
+        biller = new BasicBiller();
     }
 
     @Test
     public void generateBillSuccess() {
         ProductInterface prod1 = SampleObjects.sampleProduct();
         ProductInterface prod2 = SampleObjects.sampleProduct();
-        biller.setTaxComponent("Sales Tax", 12.5);
+        biller.setTaxComponent("Sales Tax", 12.5, RoundingMode.CEILING);
         double basic_price = prod1.getPrice() + prod2.getPrice();
         double final_price = ( SalesTaxPc / 100 ) * basic_price + basic_price;
         assertTrue(final_price == biller.generateBill(new ArrayList<ProductInterface>(Arrays.asList(prod1, prod2))) );
